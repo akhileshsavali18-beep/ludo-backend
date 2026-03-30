@@ -1,3 +1,18 @@
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+
+const server = http.createServer(app); // 🔴 THIS LINE MUST EXIST
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
