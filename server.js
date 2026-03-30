@@ -1,3 +1,19 @@
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+
+const server = http.createServer(app);
+
+// 🔴 THIS LINE YOU ARE MISSING OR BROKE
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+  },
+});
 const rooms = {};
 
 function generateRoomCode() {
