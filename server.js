@@ -1,56 +1,44 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
+const rooms = {};
 
-const app = express();
-app.use(cors());
+function generateRoomCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
-const server = http.createServer(app); // 🔴 THIS LINE MUST EXIST
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-  },
-});
-const PORT = process.env.PORT || 3000;
+  // CREATE ROOM
+  socket.on("createRoom", ({ username }) => {
+    const roomCode = generateRoomCode();
 
-server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
-});
-app.get("/", (req, res) => {
-  res.send("Ludo Backend Running");
-});
-socket.on("createRoom", ({ username }) => {
-  const roomCode = generateRoomCode();
+    rooms[roomCode] = {
+      host: socket.id,
+      players: [{ id: socket.id, username }],
+    };
 
-  rooms[roomCode] = {
-    host: socket.id,
-    players: [{ id: socket.id, username }],
-  };
+    socket.join(roomCode);
 
-  socket.join(roomCode);
-
-  // 🔴 THIS IS CRITICAL
-  socket.emit("roomCreated", {
-    roomCode,
-    players: rooms[roomCode].players,
+    socket.emit("roomCreated", {
+      roomCode,
+      players: rooms[roomCode].players,
+    });
   });
-});
-socket.on("joinRoom", ({ roomCode, username }) => {
-  const room = rooms[roomCode];
 
-  if (!room) {
-    return socket.emit("error", "Room not found");
-  }
+  // JOIN ROOM
+  socket.on("joinRoom", ({ roomCode, username }) => {
+    const room = rooms[roomCode];
 
-  if (room.players.length >= 4) {
-    return socket.emit("error", "Room full");
-  }
+    if (!room) {
+      return socket.emit("error", "Room not found");
+    }
 
-  room.players.push({ id: socket.id, username });
-  socket.join(roomCode);
+    if (room.players.length >= 4) {
+      return socket.emit("error", "Room full");
+    }
 
-  // 🔴 THIS IS CRITICAL
-  io.to(roomCode).emit("playerJoined", room.players);
+    room.players.push({ id: socket.id, username });
+    socket.join(roomCode);
+
+    io.to(roomCode).emit("playerJoined", room.players);
+  });
 });
